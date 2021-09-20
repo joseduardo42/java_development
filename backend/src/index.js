@@ -1,7 +1,7 @@
 const { response } = require('express');
 const express = require('express');
 
-const { uuid } = require('uuidv4'); //8.4K (gzipped: 3.4K)
+const { uuid, isUuid } = require('uuidv4'); //8.4K (gzipped: 3.4K)
 
 const app = express();
 
@@ -9,12 +9,36 @@ app.use(express.json());
 
 const projects = [];
 
+function logRequests(request, response, next){
+  const { method, url } = request;
+
+  const logLabel = `[${method.toUpperCase()}] ${url}`;
+
+  console.log(logLabel);
+
+  return next();
+}
+
+function validateProjectId(request, response, next){
+  const { id } = request.params;
+
+  if (!isUuid(id)){
+    return response.status(400).json({error: 'Incalid project ID'})
+  }
+
+  return next();
+}
+
+app.use(logRequests);
+
+app.use('/projects/:id', validateProjectId);
+
 app.get('/projects', (request, response) => {
   const {title} = request.query;
 
   const results = title
     ? projects.filter( project => project.title.includes(title))
-    : projects
+    : projects;
     
   return response.json(results);
 });
